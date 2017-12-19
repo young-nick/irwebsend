@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"os"
 	"strings"
-	"text/template"
 
 	"github.com/chbmuc/lirc"
 )
@@ -51,13 +51,24 @@ func main() {
 		remoteCommands = append(remoteCommands, newRemote)
 	}
 
-	tmpl, err := template.New("remotelist").ParseFiles("remotes.tmpl")
+	remotesTmpl, err := template.New("remotelist").ParseFiles("templates/base.tmpl", "templates/remotes.tmpl")
 	if err != nil {
 		panic(err)
 	}
-	err = tmpl.ExecuteTemplate(os.Stdout, "remotes.tmpl", remoteCommands)
+	err = remotesTmpl.ExecuteTemplate(os.Stdout, "irsendweb", remoteCommands)
 	if err != nil {
 		panic(err)
+	}
+	remoteControlTmpl, err := template.New("remoteControl").ParseFiles("templates/base.tmpl", "templates/control.tmpl")
+	if err != nil {
+		panic(err)
+	}
+	for k := 0; k < len(remotes); k++ {
+
+		err = remoteControlTmpl.ExecuteTemplate(os.Stdout, "irsendweb", remoteCommands[k])
+		if err != nil {
+			panic(err)
+		}
 	}
 	// pretty.PrettyPrint(remoteCommands)
 	// Send Commands

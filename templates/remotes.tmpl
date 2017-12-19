@@ -1,0 +1,20 @@
+{{ define "content" }}
+<div data-role="page" data-title="Register" id="events">
+    <!--script type="text/javascript">
+    $( '#devices' ).live( 'pagebeforeshow',function(event,data){
+        eventPage(event,data);
+    });
+    </script-->
+    <div data-role="header" data-theme="b">
+        <h1>Pi Remote Control</h1>
+    </div>
+    <div data-role="content">
+        <ul id="d-list" data-role="listview" data-inset="true" data-filter="true" data-dividertheme="a">
+            <li data-role="list-divider">Devices</li>
+            {{ range . }}
+            <li id="device{{ .Name }}"><a href="device/{{ .Name }}" data-transition="flip">{{ .Name }}</a></li>
+            {{ end }}
+        </ul>
+    </div>
+</div>
+{{ end }}
