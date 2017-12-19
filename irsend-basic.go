@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"strings"
+	"text/template"
 
 	"github.com/chbmuc/lirc"
-	"github.com/gobs/pretty"
 )
 
 func parseKeyNames(reply []string) []string {
@@ -19,6 +20,12 @@ func parseKeyNames(reply []string) []string {
 	return keyNames
 }
 
+// Remote represents a single lircd remote and all its available commands.
+type Remote struct {
+	Name     string
+	Commands []string
+}
+
 func main() {
 	// Initialize with path to lirc socket
 	ir, err := lirc.Init("/var/run/lirc/lircd")
@@ -26,12 +33,11 @@ func main() {
 		panic(err)
 	}
 
-	remoteCommands := make(map[string][]string)
-
 	remotesReply := ir.Command(`LIST`)
 	// the ir object only keeps one Data object across replies, it seems
 	// so, copy the list of remotes out to a new slice
 	remotes := make([]string, len(remotesReply.Data))
+	remoteCommands := make([]Remote, 0)
 	copy(remotes, remotesReply.Data)
 
 	fmt.Printf("%+v\n", remotes)
@@ -41,10 +47,19 @@ func main() {
 		log.Printf("Getting commands for %v\n", currentRemote)
 		reply := ir.Command(fmt.Sprintf("LIST %v", currentRemote))
 		keyNames := parseKeyNames(reply.Data)
-		remoteCommands[currentRemote] = keyNames
+		newRemote := Remote{Name: currentRemote, Commands: keyNames}
+		remoteCommands = append(remoteCommands, newRemote)
 	}
 
-	pretty.PrettyPrint(remoteCommands)
+	tmpl, err := template.New("remotelist").ParseFiles("remotes.tmpl")
+	if err != nil {
+		panic(err)
+	}
+	err = tmpl.ExecuteTemplate(os.Stdout, "remotes.tmpl", remoteCommands)
+	if err != nil {
+		panic(err)
+	}
+	// pretty.PrettyPrint(remoteCommands)
 	// Send Commands
 	// reply := ir.Command(`LIST Samsung_TV`)
 	// keyNames := parseKeyNames(reply.Data)

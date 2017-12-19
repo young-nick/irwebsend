@@ -1,0 +1,7 @@
+{{ range . }}
+    Remote Name: {{ .Name }}
+    Commands:
+    {{- range $command := .Commands }}
+        {{ $command -}}
+    {{ end }}
+{{ end }}
