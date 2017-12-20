@@ -1,30 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"html/template"
-	"log"
 	"os"
-	"strings"
 
 	"github.com/chbmuc/lirc"
+	"github.com/young-nick/lircdremotes"
 )
-
-func parseKeyNames(reply []string) []string {
-
-	keyNames := []string{}
-	for i := 0; i < len(reply); i++ {
-		keyString := strings.Split(reply[i], " ")
-		keyNames = append(keyNames, keyString[1])
-	}
-	return keyNames
-}
-
-// Remote represents a single lircd remote and all its available commands.
-type Remote struct {
-	Name     string
-	Commands []string
-}
 
 func main() {
 	// Initialize with path to lirc socket
@@ -37,19 +19,7 @@ func main() {
 	// the ir object only keeps one Data object across replies, it seems
 	// so, copy the list of remotes out to a new slice
 	remotes := make([]string, len(remotesReply.Data))
-	remoteCommands := make([]Remote, 0)
-	copy(remotes, remotesReply.Data)
-
-	fmt.Printf("%+v\n", remotes)
-
-	for j := 0; j < len(remotes); j++ {
-		currentRemote := remotes[j]
-		log.Printf("Getting commands for %v\n", currentRemote)
-		reply := ir.Command(fmt.Sprintf("LIST %v", currentRemote))
-		keyNames := parseKeyNames(reply.Data)
-		newRemote := Remote{Name: currentRemote, Commands: keyNames}
-		remoteCommands = append(remoteCommands, newRemote)
-	}
+	remoteCommands := lircdremotes.RemoteCommands(ir)
 
 	remotesTmpl, err := template.New("remotelist").ParseFiles("templates/base.tmpl", "templates/remotes.tmpl")
 	if err != nil {
