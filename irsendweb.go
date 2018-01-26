@@ -12,6 +12,12 @@ import (
 	"github.com/young-nick/lircdremotes"
 )
 
+// TODO List
+// add flags for port, address etc.
+// add request logging, possibly with middleware? logrus maybe?
+// Fix lircdremotes library logging, set it to debug
+// add tests!
+
 func Index(w http.ResponseWriter, r *http.Request, remoteCommands []lircdremotes.Remote) {
 	remotesTmpl, err := template.New("remotelist").ParseFiles("templates/base.tmpl", "templates/remotes.tmpl")
 	if err != nil {
@@ -89,10 +95,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	//remotesReply := ir.Command(`LIST`)
-	// the ir object only keeps one Data object across replies, it seems
-	// so, copy the list of remotes out to a new slice
-	//remotes := make([]string, len(remotesReply.Data))
 	remoteCommands := lircdremotes.RemoteCommands(ir)
 	router := mux.NewRouter()
 
