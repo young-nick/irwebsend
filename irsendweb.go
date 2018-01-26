@@ -15,11 +15,12 @@ import (
 func Index(w http.ResponseWriter, r *http.Request, remoteCommands []lircdremotes.Remote) {
 	remotesTmpl, err := template.New("remotelist").ParseFiles("templates/base.tmpl", "templates/remotes.tmpl")
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	err = remotesTmpl.ExecuteTemplate(w, "irsendweb", remoteCommands)
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -47,32 +48,30 @@ func Device(w http.ResponseWriter, r *http.Request, remoteCommands []lircdremote
 	vars := mux.Vars(r)
 	remote, err := getRemote(remoteCommands, vars["device"])
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	remoteControlTmpl, err := template.New("remoteControl").ParseFiles("templates/base.tmpl", "templates/control.tmpl")
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	err = remoteControlTmpl.ExecuteTemplate(w, "irsendweb", remote)
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 }
 
-func Clicked(w http.ResponseWriter, r *http.Request, remoteCommands []lircdremotes.Remote) {
+func Clicked(w http.ResponseWriter, r *http.Request, remoteCommands []lircdremotes.Remote, ir *lirc.Router) {
 	vars := mux.Vars(r)
-	// Initialize with path to lirc socket
-	ir, err := lirc.Init("/var/run/lirc/lircd")
-	if err != nil {
-		panic(err)
-	}
 
 	device := vars["device"]
 	remote, err := getRemote(remoteCommands, device)
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	operation := vars["operation"]
@@ -80,6 +79,8 @@ func Clicked(w http.ResponseWriter, r *http.Request, remoteCommands []lircdremot
 	if verifyCommand(remote, operation) {
 		ir.Send(fmt.Sprintf("%s %s", device, operation))
 	}
+
+	http.Error(w, fmt.Sprintf("Couldn't find operation %s", operation), http.StatusInternalServerError)
 
 }
 
@@ -104,35 +105,19 @@ func main() {
 	})
 
 	router.HandleFunc("/device/{device}/clicked/{operation}", func(w http.ResponseWriter, r *http.Request) {
-		Clicked(w, r, remoteCommands)
+		Clicked(w, r, remoteCommands, ir)
 	})
 
 	fs := http.FileServer(http.Dir("./static"))
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fs))
 
 	srv := &http.Server{
-		Handler: router,
-		Addr:    ":5001",
-		// Good practice: enforce timeouts for servers you create!
+		Handler:      router,
+		Addr:         ":5001",
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
 
 	log.Fatal(srv.ListenAndServe())
 
-	// for k := 0; k < len(remotes); k++ {
-
-	//
-	// 	}
-	// }
-	// pretty.PrettyPrint(remoteCommands)
-	// Send Commands
-	// reply := ir.Command(`LIST Samsung_TV`)
-	// keyNames := parseKeyNames(reply.Data)
-	// fmt.Printf("%+v\n", keyNames)
-
-	// err = ir.Send("Samsung_TV KEY_POWER")
-	// if err != nil {
-	// 	log.Println(err)
-	// }
 }
